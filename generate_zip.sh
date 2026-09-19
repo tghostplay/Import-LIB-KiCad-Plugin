@@ -32,63 +32,16 @@ if ! command -v zip &> /dev/null; then
     exit 1
 fi
 
-# Check and initialize/update submodules if needed
-check_submodules() {
-    local needs_init=false
-
-    # Check if submodules are initialized (directories exist and are not empty)
+# Verify the vendored dependencies are present
+check_vendored_deps() {
     if [[ ! -d "plugins/kiutils/src/kiutils" ]] || [[ ! -d "plugins/easyeda2kicad/easyeda2kicad" ]]; then
-        needs_init=true
-    fi
-
-    if $needs_init; then
-        echo "Initializing submodules..."
-        git submodule update --init
-        if [[ $? -ne 0 ]]; then
-            echo "  ⚠ Failed to initialize submodules"
-            echo "  Please run: git submodule update --init"
-            exit 1
-        fi
-        echo "  ✓ Submodules initialized"
-    fi
-
-    # Check for local changes in submodules before updating
-    if [[ "$1" != "--no-update" ]]; then
-        local has_local_changes=false
-
-        # Check for uncommitted changes in kiutils
-        if [[ -d "plugins/kiutils" ]]; then
-            if ! git -C plugins/kiutils diff --quiet 2>/dev/null || \
-               ! git -C plugins/kiutils diff --cached --quiet 2>/dev/null; then
-                echo "  ℹ kiutils has local changes - skipping update"
-                has_local_changes=true
-            fi
-        fi
-
-        # Check for uncommitted changes in easyeda2kicad
-        if [[ -d "plugins/easyeda2kicad" ]]; then
-            if ! git -C plugins/easyeda2kicad diff --quiet 2>/dev/null || \
-               ! git -C plugins/easyeda2kicad diff --cached --quiet 2>/dev/null; then
-                echo "  ℹ easyeda2kicad has local changes - skipping update"
-                has_local_changes=true
-            fi
-        fi
-
-        # Only update if no local changes
-        if ! $has_local_changes; then
-            echo "Checking for submodule updates..."
-            if git submodule update --remote --merge 2>/dev/null; then
-                echo "  ✓ Submodules are up to date"
-            else
-                echo "  ⚠ Submodule update failed (no network?) - using local versions"
-            fi
-        else
-            echo "  → Using local submodule versions (local changes detected)"
-        fi
+        echo "Error: vendored dependencies are missing"
+        echo "  Expected plugins/kiutils/src/kiutils and plugins/easyeda2kicad/easyeda2kicad"
+        exit 1
     fi
 }
 
-check_submodules "$1"
+check_vendored_deps
 
 # Clean up old ZIP
 rm -f Import-LIB-KiCad-Plugin.zip
@@ -108,18 +61,18 @@ echo "Preparing clean package structure..."
 cp metadata.json "$build_dir/"
 cp -r resources "$build_dir/" 2>/dev/null || cp -r resources/ "$build_dir/resources/"
 
-# Copy plugins directory structure but exclude submodule bloat
+# Copy plugins directory structure but exclude vendored bloat
 mkdir -p "$build_dir/plugins"
 
 # Copy main plugin files
 find plugins -maxdepth 1 -type f \( -name "*.py" -o -name "*.json" -o -name "*.txt" -o -name "*.ini" -o -name "*.png" \) \
     -exec cp {} "$build_dir/plugins/" \;
 
-# Copy plugin subdirectories (excluding submodules)
+# Copy plugin subdirectories (excluding vendored dependencies)
 for dir in plugins/*/; do
     dirname=$(basename "$dir")
     
-    # Skip submodules - we'll handle them specially
+    # Skip vendored dependencies - we'll handle them specially
     if [[ "$dirname" == "easyeda2kicad" || "$dirname" == "kiutils" ]]; then
         continue
     fi
@@ -131,8 +84,8 @@ for dir in plugins/*/; do
     fi
 done
 
-# Copy only needed parts from submodules
-echo "Copying essential parts from submodules..."
+# Copy only needed parts from the vendored dependencies
+echo "Copying essential parts from vendored dependencies..."
 
 # Keep kiutils in its original structure for easier development
 if [[ -d "plugins/kiutils/src/kiutils" ]]; then
@@ -140,7 +93,7 @@ if [[ -d "plugins/kiutils/src/kiutils" ]]; then
     cp -r plugins/kiutils/src/kiutils "$build_dir/plugins/kiutils/src/"
     echo "  ✓ Copied kiutils (keeping src/kiutils structure)"
 else
-    echo "  ⚠ kiutils/src/kiutils not found - run: git submodule update --init"
+    echo "  ⚠ kiutils/src/kiutils not found"
     exit 1
 fi
 
@@ -150,7 +103,7 @@ if [[ -d "plugins/easyeda2kicad/easyeda2kicad" ]]; then
     cp -r plugins/easyeda2kicad/easyeda2kicad "$build_dir/plugins/easyeda2kicad/"
     echo "  ✓ Copied easyeda2kicad (keeping easyeda2kicad structure)"
 else
-    echo "  ⚠ easyeda2kicad/easyeda2kicad not found - run: git submodule update --init"
+    echo "  ⚠ easyeda2kicad/easyeda2kicad not found"
     exit 1
 fi
 

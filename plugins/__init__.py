@@ -71,10 +71,10 @@ def cleanup_logging() -> None:
         print(f"Logging cleanup failed: {e}")
 
 
-def setup_submodule_paths() -> bool:
-    """Set up Python paths for git submodules"""
+def setup_dependency_paths() -> bool:
+    """Set up Python paths for the vendored dependencies"""
     try:
-        # Add kiutils submodule path
+        # Add kiutils path
         kiutils_path = plugin_dir / "kiutils" / "src"
         if kiutils_path.exists():
             kiutils_str = str(kiutils_path)
@@ -82,7 +82,7 @@ def setup_submodule_paths() -> bool:
                 sys.path.insert(0, kiutils_str)
                 logger.info(f"Added kiutils to sys.path: {kiutils_str}")
 
-        # Add easyeda2kicad submodule path
+        # Add easyeda2kicad path
         easyeda2kicad_path = plugin_dir / "easyeda2kicad"
         if easyeda2kicad_path.exists():
             easyeda2kicad_str = str(easyeda2kicad_path)
@@ -96,11 +96,11 @@ def setup_submodule_paths() -> bool:
             sys.path.insert(0, plugin_dir_str)
             logger.info(f"Added plugin directory to sys.path: {plugin_dir_str}")
 
-        logger.info("All submodule paths configured successfully")
+        logger.info("All dependency paths configured successfully")
         return True
 
     except Exception as e:
-        logger.error(f"Failed to setup submodule paths: {e}")
+        logger.error(f"Failed to setup dependency paths: {e}")
         return False
 
 
@@ -116,7 +116,7 @@ def show_error_dialog(title: str, message: str) -> None:
 
 
 class ActionImpartPlugin(pcbnew.ActionPlugin):
-    """KiCad Action Plugin for library import using git submodules."""
+    """KiCad Action Plugin for library import using vendored dependencies."""
 
     def defaults(self) -> None:
         self.name = "impartGUI (fallback pcbnew)"
@@ -131,20 +131,20 @@ class ActionImpartPlugin(pcbnew.ActionPlugin):
         self.dark_icon_file_name = str(icon_path)
 
     def Run(self) -> None:
-        """Run the plugin with git submodules."""
+        """Run the plugin."""
         try:
             setup_logging()
             logger.info("Plugin started")
 
-            # Set up paths for git submodules (no venv needed)
-            if not setup_submodule_paths():
+            # Set up paths for the vendored dependencies (no venv needed)
+            if not setup_dependency_paths():
                 error_msg = (
-                    "Failed to set up submodule paths.\n\n"
+                    "Failed to set up dependency paths.\n\n"
                     f"Check log file for details: {log_file}\n\n"
-                    "Ensure git submodules are properly initialized:\n"
-                    "git submodule update --init --recursive"
+                    "Ensure plugins/kiutils and plugins/easyeda2kicad "
+                    "are present in the installation."
                 )
-                show_error_dialog("Submodule Setup Error", error_msg)
+                show_error_dialog("Dependency Setup Error", error_msg)
                 return
 
             # Start plugin frontend directly

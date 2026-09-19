@@ -209,16 +209,12 @@ If you notice an error then please write me an issue. If you want to change the 
 ### Building the KiCad Plugin Package
 
 ```bash
-# Clone repository with submodules
-git clone --recurse-submodules https://github.com/Steffen-W/Import-LIB-KiCad-Plugin.git
+# Clone repository (kiutils and easyeda2kicad are vendored in plugins/)
+git clone https://github.com/Steffen-W/Import-LIB-KiCad-Plugin.git
 cd Import-LIB-KiCad-Plugin
 
-# If you already cloned without --recurse-submodules, initialize submodules:
-git submodule update --init
-
-# Update to latest changes (including submodules)
-git pull --recurse-submodules
-git submodule update --remote --merge
+# Update to latest changes
+git pull
 
 # Generate KiCad plugin ZIP file (Linux/macOS/Windows Git Bash)
 ./generate_zip.sh
